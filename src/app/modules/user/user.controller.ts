@@ -48,6 +48,19 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const UserControllers = { createUser, getAllUsers, updateUser };
+const getMe = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.user as JwtPayload;
+
+  const user = await UserServices.getUserById(userId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Current user retrieved successfully",
+    data: user,
+  });
+});
+
+export const UserControllers = { createUser, getAllUsers, updateUser, getMe };
 
 // route matching > controller > service > model > DB

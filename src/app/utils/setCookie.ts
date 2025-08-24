@@ -6,18 +6,21 @@ export interface AuthTokens {
   refreshToken?: string;
 }
 export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
+  const isProd = envVars.NODE_ENV === "production";
+
   if (tokenInfo.accessToken) {
     res.cookie("accessToken", tokenInfo.accessToken, {
       httpOnly: true,
-      secure: envVars.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProd, // only true in prod
+      sameSite: isProd ? "none" : "lax", // "lax" works for localhost
     });
   }
+
   if (tokenInfo.refreshToken) {
     res.cookie("refreshToken", tokenInfo.refreshToken, {
       httpOnly: true,
-      secure: envVars.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
     });
   }
 };

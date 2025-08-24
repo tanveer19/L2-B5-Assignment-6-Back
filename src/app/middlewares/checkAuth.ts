@@ -11,23 +11,28 @@ export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // 1. Get token from Authorization header
       const authHeader = req.headers.authorization || "";
-
-      // Accept both "Bearer <token>" and just "<token>"
-      const accessToken = authHeader.startsWith("Bearer ")
+      let accessToken = authHeader.startsWith("Bearer ")
         ? authHeader.split(" ")[1]
         : authHeader;
+
+      // 2. If no token in header, check cookies
+      if (!accessToken && req.cookies?.accessToken) {
+        accessToken = req.cookies.accessToken;
+      }
 
       if (!accessToken) {
         throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or missing token");
       }
 
+      // 3. Verify token
       const verifiedToken = verifyToken(
         accessToken,
         envVars.JWT_ACCESS_SECRET
       ) as JwtPayload;
 
-      // Check user in DB
+      // 4. Check user in DB
       const isUserExist = await User.findById(verifiedToken.userId);
 
       if (!isUserExist) {
@@ -48,6 +53,7 @@ export const checkAuth =
         throw new AppError(httpStatus.BAD_REQUEST, "User is deleted");
       }
 
+      // 5. Check role
       if (!authRoles.includes(verifiedToken.role)) {
         throw new AppError(
           httpStatus.FORBIDDEN,
@@ -55,6 +61,7 @@ export const checkAuth =
         );
       }
 
+      // 6. Attach user to req
       req.user = verifiedToken;
       next();
     } catch (error) {
