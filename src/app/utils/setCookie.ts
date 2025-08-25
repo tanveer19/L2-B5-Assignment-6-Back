@@ -11,8 +11,8 @@ export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
   if (tokenInfo.accessToken) {
     res.cookie("accessToken", tokenInfo.accessToken, {
       httpOnly: true,
-      secure: isProd, // only true in prod
-      sameSite: isProd ? "none" : "lax", // "lax" works for localhost
+      secure: envVars.NODE_ENV === "production", // false in dev
+      sameSite: envVars.NODE_ENV === "production" ? "none" : "lax", // "lax" works for localhost
     });
   }
 

@@ -47,16 +47,13 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
     meta: result.meta,
   });
 });
-
 const getMe = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.user as JwtPayload;
-
+  const userId = req.user?.userId; // from checkAuth
   const user = await UserServices.getUserById(userId);
-
   sendResponse(res, {
     success: true,
-    statusCode: httpStatus.OK,
-    message: "Current user retrieved successfully",
+    statusCode: 200,
+    message: "User info retrieved",
     data: user,
   });
 });
