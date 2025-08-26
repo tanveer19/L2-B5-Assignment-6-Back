@@ -183,4 +183,20 @@ export const WalletController = {
       next(error);
     }
   },
+  getWallet: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req.user as { userId: string }).userId;
+      const wallet = await Wallet.findOne({ user: userId });
+      if (!wallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "Wallet not found");
+      }
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Wallet fetched successfully",
+        data: wallet,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

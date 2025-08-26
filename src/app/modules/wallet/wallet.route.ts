@@ -30,4 +30,6 @@ router.get(
   WalletController.getTransactionHistory
 );
 
+router.get("/me", checkAuth(Role.USER, Role.AGENT), WalletController.getWallet);
+
 export const WalletRoutes = router;
