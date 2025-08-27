@@ -1,141 +1,202 @@
-import { Request, Response } from "express";
-import { Wallet } from "./wallet.model";
+import { Request, Response, NextFunction } from "express";
+import { Wallet } from "./wallet.model"; // assuming you have a wallet model
+import httpStatus from "http-status-codes";
+import AppError from "../../errorHelpers/AppError";
 import { Transaction } from "../transaction/transaction.model";
 import { User } from "../user/user.model";
+import { IWallet } from "./wallet.interface";
+import { HydratedDocument } from "mongoose";
 
-// Add money (deposit)
-const addMoney = async (req: Request, res: Response) => {
-  try {
-    const { amount } = req.body;
-    const userId = req.user._id; // from checkAuth middleware
-
-    const wallet = await Wallet.findOne({ user: userId });
-    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
-
-    wallet.balance += Number(amount);
-    await wallet.save();
-
-    // log transaction
-    await Transaction.create({
-      user: userId,
-      type: "DEPOSIT",
-      amount,
-      status: "SUCCESS",
-    });
-
-    res.json({ success: true, balance: wallet.balance });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to deposit money", error });
-  }
-};
-
-// Withdraw money
-const withdrawMoney = async (req: Request, res: Response) => {
-  try {
-    const { amount } = req.body;
-    const userId = req.user._id;
-
-    const wallet = await Wallet.findOne({ user: userId });
-    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
-
-    if (wallet.balance < amount)
-      return res.status(400).json({ message: "Insufficient balance" });
-
-    wallet.balance -= Number(amount);
-    await wallet.save();
-
-    await Transaction.create({
-      user: userId,
-      type: "WITHDRAW",
-      amount,
-      status: "SUCCESS",
-    });
-
-    res.json({ success: true, balance: wallet.balance });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to withdraw money", error });
-  }
-};
-
-// Send money to another user
-const sendMoney = async (req: Request, res: Response) => {
-  try {
-    const { recipientIdentifier, amount } = req.body; // phone/email
-    const senderId = req.user._id;
-
-    const senderWallet = await Wallet.findOne({ user: senderId });
-    if (!senderWallet)
-      return res.status(404).json({ message: "Wallet not found" });
-
-    if (senderWallet.balance < amount)
-      return res.status(400).json({ message: "Insufficient balance" });
-
-    // find recipient by phone or email
-    const recipient = await User.findOne({
-      $or: [{ phone: recipientIdentifier }, { email: recipientIdentifier }],
-    });
-    if (!recipient)
-      return res.status(404).json({ message: "Recipient not found" });
-
-    const recipientWallet = await Wallet.findOne({ user: recipient._id });
-    if (!recipientWallet)
-      return res.status(404).json({ message: "Recipient wallet not found" });
-
-    // transfer
-    senderWallet.balance -= Number(amount);
-    recipientWallet.balance += Number(amount);
-
-    await senderWallet.save();
-    await recipientWallet.save();
-
-    // log transactions
-    await Transaction.create({
-      user: senderId,
-      type: "SEND",
-      amount,
-      status: "SUCCESS",
-      to: recipient._id,
-    });
-
-    res.json({ success: true, balance: senderWallet.balance });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to send money", error });
-  }
-};
-
-// Get wallet details
-const getWallet = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user._id;
-    const wallet = await Wallet.findOne({ user: userId });
-
-    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
-
-    res.json({ success: true, data: wallet });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch wallet", error });
-  }
-};
-
-// Transaction history
-const getTransactionHistory = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user._id;
-    const transactions = await Transaction.find({ user: userId }).sort({
-      createdAt: -1,
-    });
-
-    res.json({ success: true, data: transactions });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch transactions", error });
-  }
-};
-
-// 👇 Export as an object so your routes can use WalletController.addMoney etc.
 export const WalletController = {
-  addMoney,
-  withdrawMoney,
-  sendMoney,
-  getWallet,
-  getTransactionHistory,
+  addMoney: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req.user as { userId: string }).userId;
+
+      const user = await User.findById(userId);
+      if (!user || !user.wallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "User or wallet not found");
+      }
+
+      const wallet = await Wallet.findById(user.wallet);
+      if (!wallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "Wallet not found");
+      }
+
+      const amount = Number(req.body.amount);
+      if (!amount || amount <= 0) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid amount");
+      }
+
+      wallet.balance += amount;
+      await wallet.save();
+
+      await Transaction.create({
+        type: "ADD",
+        from: null,
+        to: userId,
+        amount,
+        timestamp: new Date(),
+      });
+
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Money added successfully",
+        data: {
+          balance: wallet.balance,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  withdrawMoney: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req.user as { userId: string }).userId;
+
+      const user = await User.findById(userId);
+      if (!user || !user.wallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "User or wallet not found");
+      }
+
+      const wallet = await Wallet.findById(user.wallet);
+      if (!wallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "Wallet not found");
+      }
+
+      const amount = Number(req.body.amount);
+      if (!amount || amount <= 0) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid amount");
+      }
+
+      wallet.balance -= amount;
+      await wallet.save();
+
+      await Transaction.create({
+        type: "WITHDRAW",
+        from: userId,
+        to: null,
+        amount,
+        timestamp: new Date(),
+      });
+
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Money added successfully",
+        data: {
+          balance: wallet.balance,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  sendMoney: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { toPhone, amount } = req.body;
+      const user = req.user;
+
+      if (!user) {
+        throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+      }
+
+      // Populate sender wallet as IWallet
+      const sender = await User.findById(user.userId).populate<{
+        wallet: HydratedDocument<IWallet>;
+      }>("wallet");
+
+      if (!sender || !sender.wallet) {
+        throw new AppError(
+          httpStatus.NOT_FOUND,
+          "Sender or sender wallet not found"
+        );
+      }
+
+      const receiver = await User.findOne({ phone: toPhone }).populate<{
+        wallet: HydratedDocument<IWallet>;
+      }>("wallet");
+
+      if (!receiver || !receiver.wallet) {
+        throw new AppError(
+          httpStatus.NOT_FOUND,
+          "Receiver or receiver wallet not found"
+        );
+      }
+      const transferAmount = Number(amount);
+      if (!transferAmount || transferAmount <= 0) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid transfer amount");
+      }
+
+      if (sender.wallet.balance < transferAmount) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Insufficient balance");
+      }
+
+      // Perform balance updates
+      sender.wallet.balance -= transferAmount;
+      receiver.wallet.balance += transferAmount;
+
+      // Save updated wallets
+      await sender.wallet.save();
+      await receiver.wallet.save();
+
+      // Record the transaction
+      await Transaction.create({
+        type: "SEND",
+        from: sender._id,
+        to: receiver._id,
+        amount: transferAmount,
+        timestamp: new Date(),
+      });
+
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Money sent successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  getTransactionHistory: async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const userId = (req.user as { userId: string }).userId;
+
+      // Find all transactions where the user is either the sender or receiver
+      const transactions = await Transaction.find({
+        $or: [{ from: userId }, { to: userId }],
+      })
+        .populate("from", "phone") // Optional: populate phone number of sender
+        .populate("to", "phone") // Optional: populate phone number of receiver
+        .sort({ createdAt: -1 }); // Newest first
+
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Transaction history fetched successfully",
+        data: transactions,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+  getWallet: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req.user as { userId: string }).userId;
+      const wallet = await Wallet.findOne({ user: userId });
+      if (!wallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "Wallet not found");
+      }
+      res.status(httpStatus.OK).json({
+        success: true,
+        message: "Wallet fetched successfully",
+        data: wallet,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
