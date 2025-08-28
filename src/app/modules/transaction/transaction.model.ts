@@ -5,7 +5,7 @@ const transactionSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["SEND", "ADD", "WITHDRAW"],
+      enum: ["SEND", "DEPOSIT", "WITHDRAW"],
       required: true,
     },
     from: {
