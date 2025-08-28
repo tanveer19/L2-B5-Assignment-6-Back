@@ -5,31 +5,35 @@ import { Role } from "../user/user.interface";
 
 const router = Router();
 
-// All users with 'USER' or 'AGENT' role can use wallet functions
+// Get logged-in user's wallet
+router.get("/my", checkAuth(Role.USER, Role.AGENT), WalletController.getWallet);
+
+// Add money to wallet
 router.post(
-  "/add-money",
+  "/deposit",
   checkAuth(Role.USER, Role.AGENT),
   WalletController.addMoney
 );
 
+// Withdraw money from wallet
 router.post(
   "/withdraw",
   checkAuth(Role.USER, Role.AGENT),
   WalletController.withdrawMoney
 );
 
+// Send money to another user
 router.post(
   "/send",
   checkAuth(Role.USER, Role.AGENT),
   WalletController.sendMoney
 );
 
+// Get logged-in user's transaction history
 router.get(
   "/transactions",
   checkAuth(Role.USER, Role.AGENT),
   WalletController.getTransactionHistory
 );
-
-router.get("/me", checkAuth(Role.USER, Role.AGENT), WalletController.getWallet);
 
 export const WalletRoutes = router;
