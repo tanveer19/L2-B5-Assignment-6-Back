@@ -146,12 +146,15 @@ const getTransactionHistory = async (
     const userId = req.user?.userId;
     if (!userId) throw new AppError(401, "Unauthorized");
 
+    const limit = Number(req.query.limit) || 5;
+
     const transactions = await Transaction.find({
-      $or: [{ user: userId }, { to: userId }],
+      $or: [{ from: userId }, { to: userId }],
     })
-      .populate("to", "phone email") // optional: show recipient info
-      .populate("user", "phone email") // optional: show sender info
-      .sort({ createdAt: -1 });
+      .populate("to", "phone email")
+      .populate("from", "phone email")
+      .sort({ createdAt: -1 })
+      .limit(limit);
 
     res.json({ success: true, data: transactions });
   } catch (error) {
