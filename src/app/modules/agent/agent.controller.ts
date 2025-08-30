@@ -33,7 +33,7 @@ const cashIn = catchAsync(async (req: Request, res: Response) => {
   });
 
   await Transaction.create({
-    type: "ADD",
+    type: "CASH_IN",
     from: agent._id,
     to: user._id,
     amount,
@@ -79,7 +79,7 @@ const cashOut = catchAsync(async (req: Request, res: Response) => {
   });
 
   await Transaction.create({
-    type: "WITHDRAW",
+    type: "CASH_OUT",
     from: user._id,
     to: agent._id,
     amount,
