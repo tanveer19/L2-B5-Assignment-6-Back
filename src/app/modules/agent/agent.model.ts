@@ -1,5 +1,5 @@
 import { model, Schema, Types, Document } from "mongoose";
-import { IAuthProvider, IsActive, Role } from "./user.interface";
+import { IAuthProvider, IsActive, Role } from "./agent.interface";
 
 export interface IUser extends Document {
   name: string;

@@ -8,20 +8,19 @@ import AppError from "../../errorHelpers/AppError";
 import { sendResponse } from "../../utils/sendResponse";
 import { Role } from "../user/user.interface";
 
-// 🔹 Cash-in: Agent adds money to a user's wallet
 const cashIn = catchAsync(async (req: Request, res: Response) => {
   const agent = req.user;
-  const { phone, amount } = req.body;
+  const { phoneNumber, amount } = req.body;
 
   if (agent?.role !== Role.AGENT) {
     throw new AppError(httpStatus.FORBIDDEN, "Only agents can perform cash-in");
   }
 
-  if (!phone || !amount || amount <= 0) {
+  if (!phoneNumber || !amount || amount <= 0) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid phone or amount");
   }
 
-  const user = await User.findOne({ phone }).populate("wallet");
+  const user = await User.findOne({ phone: phoneNumber }).populate("wallet");
   if (!user || !user.wallet) {
     console.log("Found user:", user);
 
@@ -33,16 +32,16 @@ const cashIn = catchAsync(async (req: Request, res: Response) => {
   });
 
   await Transaction.create({
-    type: "CASH_IN",
+    type: "DEPOSIT",
     from: agent._id,
-    to: user._id,
+    to: user.wallet._id,
     amount,
   });
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: `৳${amount} added to user (${phone})`,
+    message: `৳${amount} added to user (${phoneNumber})`,
     data: null,
   });
 });
@@ -50,7 +49,7 @@ const cashIn = catchAsync(async (req: Request, res: Response) => {
 // 🔹 Cash-out: Agent withdraws money from a user's wallet
 const cashOut = catchAsync(async (req: Request, res: Response) => {
   const agent = req.user;
-  const { phone, amount } = req.body;
+  const { phoneNumber, amount } = req.body;
 
   if (agent?.role !== Role.AGENT) {
     throw new AppError(
@@ -59,11 +58,11 @@ const cashOut = catchAsync(async (req: Request, res: Response) => {
     );
   }
 
-  if (!phone || !amount || amount <= 0) {
+  if (!phoneNumber || !amount || amount <= 0) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid phone or amount");
   }
 
-  const user = await User.findOne({ phone }).populate("wallet");
+  const user = await User.findOne({ phone: phoneNumber }).populate("wallet");
   if (!user || !user.wallet) {
     throw new AppError(httpStatus.NOT_FOUND, "User or wallet not found");
   }
@@ -79,8 +78,8 @@ const cashOut = catchAsync(async (req: Request, res: Response) => {
   });
 
   await Transaction.create({
-    type: "CASH_OUT",
-    from: user._id,
+    type: "WITHDRAW",
+    from: user.wallet._id,
     to: agent._id,
     amount,
   });
@@ -88,7 +87,7 @@ const cashOut = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: `৳${amount} withdrawn from user (${phone})`,
+    message: `৳${amount} withdrawn from user (${phoneNumber})`,
     data: null,
   });
 });

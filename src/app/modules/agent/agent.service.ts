@@ -1,6 +1,6 @@
 import AppError from "../../errorHelpers/AppError";
-import { IAuthProvider, IUser, Role } from "./user.interface";
-import { User } from "./user.model";
+import { IAuthProvider, IUser, Role } from "./agent.interface";
+import { User } from "./agent.model";
 import httpStatus from "http-status-codes";
 import bcryptjs from "bcryptjs";
 import { envVars } from "../../config/env";
@@ -10,9 +10,9 @@ import { Transaction } from "../transaction/transaction.model";
 import mongoose from "mongoose";
 
 const createUser = async (payload: Partial<IUser>) => {
-  const { phone, password, email, role, ...rest } = payload;
+  const { phone: phoneNumber, password, email, role, ...rest } = payload;
 
-  if (!phone || !password || !role) {
+  if (!phoneNumber || !password || !role) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Phone, password, and role are required"
@@ -27,7 +27,7 @@ const createUser = async (payload: Partial<IUser>) => {
     );
   }
 
-  const existingUser = await User.findOne({ phone });
+  const existingUser = await User.findOne({ phone: phoneNumber });
 
   if (existingUser) {
     throw new AppError(
@@ -43,19 +43,19 @@ const createUser = async (payload: Partial<IUser>) => {
 
   const authProvider: IAuthProvider = {
     provider: "credentials",
-    providerId: email ? email : phone,
+    providerId: email ? email : phoneNumber,
   };
 
   const user = await User.create({
-    phone,
+    phone: phoneNumber,
     role,
     password: hashedPassword,
     auths: [authProvider],
     ...rest,
   });
 
-  // ✅ Create wallet with initial balance ৳50
-  const wallet = await Wallet.create({ user: user._id, balance: 50 });
+  // ✅ Create wallet with initial balance ৳5000
+  const wallet = await Wallet.create({ user: user._id, balance: 5000 });
   user.wallet = wallet._id as mongoose.Types.ObjectId;
   await user.save();
 
@@ -63,7 +63,7 @@ const createUser = async (payload: Partial<IUser>) => {
   await Transaction.create({
     type: "ADD",
     to: user._id,
-    amount: 50,
+    amount: 5000,
   });
 
   const createdUser = await User.findById(user._id).populate("wallet");
