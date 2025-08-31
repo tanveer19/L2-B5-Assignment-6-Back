@@ -7,6 +7,11 @@ const router = express.Router();
 
 router.post("/cash-in", checkAuth(Role.AGENT), AgentController.cashIn);
 router.post("/cash-out", checkAuth(Role.AGENT), AgentController.cashOut);
+router.get(
+  "/transactions",
+  checkAuth(Role.AGENT),
+  AgentController.getAgentTransactions
+);
 router.get("/summary", checkAuth(Role.AGENT), AgentController.getAgentSummary);
 router.get(
   "/activity",

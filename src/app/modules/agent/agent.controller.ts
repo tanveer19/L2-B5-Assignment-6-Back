@@ -191,9 +191,61 @@ const getAgentActivity = catchAsync(async (req: Request, res: Response) => {
     data: formattedActivities,
   });
 });
+
+const getAgentTransactions = catchAsync(async (req: Request, res: Response) => {
+  const agent = req.user;
+  const { page = 1, limit = 10, type, fromDate, toDate, search } = req.query;
+
+  if (agent?.role !== Role.AGENT) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Only agents can access transactions"
+    );
+  }
+
+  // Build query for agent's transactions
+  const query: any = {
+    $or: [
+      { from: agent._id, type: "DEPOSIT" }, // Agent cash-in transactions
+      { to: agent._id, type: "WITHDRAW" }, // Agent cash-out transactions
+    ],
+  };
+
+  // Add filters
+  if (type) query.type = type;
+  if (fromDate) query.createdAt = { $gte: new Date(fromDate as string) };
+  if (toDate) {
+    query.createdAt = query.createdAt || {};
+    query.createdAt.$lte = new Date(toDate as string);
+  }
+
+  const transactions = await Transaction.find(query)
+    .populate("from", "phone name")
+    .populate("to", "phone name")
+    .sort({ createdAt: -1 })
+    .limit(Number(limit))
+    .skip((Number(page) - 1) * Number(limit));
+
+  const total = await Transaction.countDocuments(query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Agent transactions retrieved successfully",
+    data: {
+      data: transactions,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+      },
+    },
+  });
+});
 export const AgentController = {
   cashIn,
   cashOut,
   getAgentSummary,
   getAgentActivity,
+  getAgentTransactions,
 };
