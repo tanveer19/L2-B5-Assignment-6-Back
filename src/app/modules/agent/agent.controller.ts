@@ -7,6 +7,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import AppError from "../../errorHelpers/AppError";
 import { sendResponse } from "../../utils/sendResponse";
 import { Role } from "../user/user.interface";
+import { IAgentSummary } from "./agent.interface";
 
 const cashIn = catchAsync(async (req: Request, res: Response) => {
   const agent = req.user;
@@ -91,8 +92,108 @@ const cashOut = catchAsync(async (req: Request, res: Response) => {
     data: null,
   });
 });
+// agent.controller.ts
+const getAgentSummary = catchAsync(async (req: Request, res: Response) => {
+  const agent = req.user;
 
+  if (agent?.role !== Role.AGENT) {
+    throw new AppError(httpStatus.FORBIDDEN, "Only agents can access summary");
+  }
+
+  // Get today's date for filtering
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Calculate summary data
+  const totalCashIn = await Transaction.countDocuments({
+    type: "DEPOSIT",
+    from: agent._id,
+  });
+
+  const totalCashOut = await Transaction.countDocuments({
+    type: "WITHDRAW",
+    to: agent._id,
+  });
+
+  const totalTransactions = totalCashIn + totalCashOut;
+
+  const todayCashIn = await Transaction.countDocuments({
+    type: "DEPOSIT",
+    from: agent._id,
+    createdAt: { $gte: today },
+  });
+
+  const todayCashOut = await Transaction.countDocuments({
+    type: "WITHDRAW",
+    to: agent._id,
+    createdAt: { $gte: today },
+  });
+
+  const todayTransactions = todayCashIn + todayCashOut;
+
+  // Calculate commission (optional)
+  const commissionRate = 0.015; // 1.5% commission
+  const totalCommission = totalTransactions * commissionRate;
+
+  const summary: IAgentSummary = {
+    totalCashIn,
+    totalCashOut,
+    totalTransactions,
+    totalCommission,
+    todayCashIn,
+    todayCashOut,
+    todayTransactions,
+  };
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Agent summary retrieved successfully",
+    data: summary,
+  });
+});
+
+const getAgentActivity = catchAsync(async (req: Request, res: Response) => {
+  const agent = req.user;
+  const { limit = 10 } = req.query;
+
+  if (agent?.role !== Role.AGENT) {
+    throw new AppError(httpStatus.FORBIDDEN, "Only agents can access activity");
+  }
+
+  const activities = await Transaction.find({
+    $or: [{ from: agent._id }, { to: agent._id }],
+  })
+    .populate("from", "phone name")
+    .populate("to", "phone name")
+    .sort({ createdAt: -1 })
+    .limit(Number(limit));
+
+  const formattedActivities = activities.map((transaction) => ({
+    _id: transaction._id,
+    type:
+      transaction.from?.toString() === agent._id.toString()
+        ? "CASH_IN"
+        : "CASH_OUT",
+    amount: transaction.amount,
+    userPhone:
+      transaction.from?.toString() === agent._id.toString()
+        ? (transaction.to as any)?.phone
+        : (transaction.from as any)?.phone,
+    timestamp: transaction.createdAt,
+    status: "SUCCESS", // You can add status logic based on your business rules
+  }));
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Agent activity retrieved successfully",
+    data: formattedActivities,
+  });
+});
 export const AgentController = {
   cashIn,
   cashOut,
+  getAgentSummary,
+  getAgentActivity,
 };
