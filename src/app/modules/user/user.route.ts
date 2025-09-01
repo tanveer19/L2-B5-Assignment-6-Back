@@ -25,10 +25,15 @@ router.get(
 );
 
 router.patch(
-  "/:id",
-
+  "/update", // No :id parameter
+  checkAuth(...Object.values(Role)),
   validateRequest(updateUserZodSchema),
+  UserControllers.updateProfile // You'll need to create this controller
+);
 
+router.patch(
+  "/:id",
+  validateRequest(updateUserZodSchema),
   checkAuth(...Object.values(Role)),
   UserControllers.updateUser
 );

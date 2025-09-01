@@ -3,6 +3,9 @@ import { Wallet } from "./wallet.model";
 import { Transaction } from "../transaction/transaction.model";
 import { User } from "../user/user.model";
 import AppError from "../../errorHelpers/AppError";
+import { catchAsync } from "../../utils/catchAsync";
+import { sendResponse } from "../../utils/sendResponse";
+import httpStatus from "http-status-codes";
 
 // Add money (deposit)
 const addMoney = async (req: Request, res: Response, next: NextFunction) => {
@@ -137,30 +140,56 @@ const getWallet = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 // Transaction history
-const getTransactionHistory = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = req.user?.userId;
-    if (!userId) throw new AppError(401, "Unauthorized");
+const getTransactionHistory = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user;
+    const { page = 1, limit = 10, type, fromDate, toDate, search } = req.query;
 
-    const limit = Number(req.query.limit) || 5;
+    // Build query for user's transactions
+    const query: any = {
+      $or: [
+        { from: user._id }, // User sent money
+        { to: user._id }, // User received money
+      ],
+    };
 
-    const transactions = await Transaction.find({
-      $or: [{ from: userId }, { to: userId }],
-    })
-      .populate("to", "phone email")
-      .populate("from", "phone email")
+    // Add filters
+    if (type) query.type = type;
+    if (fromDate) query.createdAt = { $gte: new Date(fromDate as string) };
+    if (toDate) {
+      query.createdAt = query.createdAt || {};
+      query.createdAt.$lte = new Date(toDate as string);
+    }
+
+    // Search functionality (if needed)
+    if (search) {
+      // You might need to implement search logic here
+    }
+
+    const transactions = await Transaction.find(query)
+      .populate("from", "phone name") // Populate sender info
+      .populate("to", "phone name") // Populate receiver info
       .sort({ createdAt: -1 })
-      .limit(limit);
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
 
-    res.json({ success: true, data: transactions });
-  } catch (error) {
-    next(error);
+    const total = await Transaction.countDocuments(query);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Transaction history retrieved successfully",
+      data: {
+        data: transactions,
+        meta: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+        },
+      },
+    });
   }
-};
+);
 
 // Export
 export const WalletController = {
