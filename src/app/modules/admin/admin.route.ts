@@ -1,38 +1,20 @@
-import { Router } from "express";
+// src/app/modules/admin/admin.route.ts
+import express from "express";
 import { AdminController } from "./admin.controller";
+import { Role } from "../user/user.interface";
 import { checkAuth } from "../../middlewares/checkAuth";
 
-const router = Router();
+const router = express.Router();
 
-router.get("/users", checkAuth("ADMIN"), AdminController.getAllUsers);
-router.get("/agents", checkAuth("ADMIN"), AdminController.getAllAgents);
-router.get("/wallets", checkAuth("ADMIN"), AdminController.getAllWallets);
 router.get(
-  "/transactions",
-  checkAuth("ADMIN"),
-  AdminController.getAllTransactions
+  "/summary",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getAdminSummary
 );
-
-router.patch(
-  "/wallets/:walletId/block",
-  checkAuth("ADMIN"),
-  AdminController.blockWallet
-);
-router.patch(
-  "/wallets/:walletId/unblock",
-  checkAuth("ADMIN"),
-  AdminController.unblockWallet
-);
-
-router.patch(
-  "/agents/:agentId/approve",
-  checkAuth("ADMIN"),
-  AdminController.approveAgent
-);
-router.patch(
-  "/agents/:agentId/suspend",
-  checkAuth("ADMIN"),
-  AdminController.suspendAgent
+router.get(
+  "/activity",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getAdminActivity
 );
 
 export const AdminRoutes = router;

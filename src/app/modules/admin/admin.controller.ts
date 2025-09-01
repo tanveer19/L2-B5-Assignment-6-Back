@@ -1,146 +1,97 @@
+// src/app/modules/admin/admin.controller.ts
 import { Request, Response } from "express";
 import httpStatus from "http-status-codes";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
 import { User } from "../user/user.model";
-import { Wallet } from "../wallet/wallet.model";
-import { Transaction } from "../transaction/transaction.model"; // Update path as needed
+import { Transaction } from "../transaction/transaction.model";
+import { catchAsync } from "../../utils/catchAsync";
 import AppError from "../../errorHelpers/AppError";
-import { IsActive, Role } from "../user/user.interface";
+import { sendResponse } from "../../utils/sendResponse";
+import { Role } from "../user/user.interface";
+import { IAdminSummary } from "./admin.interface";
 
-// View all users
-const getAllUsers = catchAsync(async (_req: Request, res: Response) => {
-  const users = await User.find({ role: Role.USER });
+const getAdminSummary = catchAsync(async (req: Request, res: Response) => {
+  // Get today's date for filtering
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Get all counts in parallel for better performance
+  const [
+    totalUsers,
+    totalAgents,
+    totalAdmins,
+    totalTransactions,
+    totalTransactionVolume,
+    todayTransactions,
+    todayTransactionVolume,
+    activeUsers,
+    inactiveUsers,
+  ] = await Promise.all([
+    User.countDocuments({ role: Role.USER }),
+    User.countDocuments({ role: Role.AGENT }),
+    User.countDocuments({ role: { $in: [Role.ADMIN, Role.SUPER_ADMIN] } }),
+    Transaction.countDocuments(),
+    Transaction.aggregate([
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    Transaction.countDocuments({ createdAt: { $gte: today } }),
+    Transaction.aggregate([
+      { $match: { createdAt: { $gte: today } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    User.countDocuments({ isActive: true }),
+    User.countDocuments({ isActive: false }),
+  ]);
+
+  const summary: IAdminSummary = {
+    totalUsers,
+    totalAgents,
+    totalAdmins,
+    totalTransactions,
+    totalTransactionVolume: totalTransactionVolume[0]?.total || 0,
+    todayTransactions,
+    todayTransactionVolume: todayTransactionVolume[0]?.total || 0,
+    activeUsers,
+    inactiveUsers,
+  };
+
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Fetched all users",
-    data: users,
+    message: "Admin summary retrieved successfully",
+    data: summary,
   });
 });
 
-// View all agents
-const getAllAgents = catchAsync(async (_req: Request, res: Response) => {
-  const agents = await User.find({ role: Role.AGENT });
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Fetched all agents",
-    data: agents,
-  });
-});
+const getAdminActivity = catchAsync(async (req: Request, res: Response) => {
+  const { limit = 10 } = req.query;
 
-// View all wallets
-const getAllWallets = catchAsync(async (_req: Request, res: Response) => {
-  const wallets = await Wallet.find().populate("user");
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Fetched all wallets",
-    data: wallets,
-  });
-});
+  const activities = await Transaction.find()
+    .populate("from", "phone name")
+    .populate("to", "phone name")
+    .sort({ createdAt: -1 })
+    .limit(Number(limit));
 
-// View all transactions
-const getAllTransactions = catchAsync(async (_req: Request, res: Response) => {
-  const transactions = await Transaction.find().populate("from to");
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Fetched all transactions",
-    data: transactions,
-  });
-});
-
-// Block wallet
-const blockWallet = catchAsync(async (req: Request, res: Response) => {
-  const wallet = await Wallet.findById(req.params.walletId);
-  if (!wallet) {
-    throw new AppError(httpStatus.NOT_FOUND, "Wallet not found");
-  }
-  const user = await User.findById(wallet.user);
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
-  user.isActive = IsActive.BLOCKED;
-  await user.save();
+  const formattedActivities = activities.map((transaction) => ({
+    _id: transaction._id,
+    type: transaction.type,
+    amount: transaction.amount,
+    userPhone:
+      (transaction.from as any)?.phone ||
+      (transaction.to as any)?.phone ||
+      "System",
+    timestamp: transaction.createdAt,
+    status: "SUCCESS",
+  }));
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Wallet blocked",
-    data: user,
-  });
-});
-
-// Unblock wallet
-const unblockWallet = catchAsync(async (req: Request, res: Response) => {
-  const wallet = await Wallet.findById(req.params.walletId);
-  if (!wallet) {
-    throw new AppError(httpStatus.NOT_FOUND, "Wallet not found");
-  }
-  const user = await User.findById(wallet.user);
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
-  user.isActive = IsActive.ACTIVE;
-  await user.save();
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Wallet unblocked",
-    data: user,
-  });
-});
-
-// Approve agent
-const approveAgent = catchAsync(async (req: Request, res: Response) => {
-  const agent = await User.findOne({
-    _id: req.params.agentId,
-    role: Role.AGENT,
-  });
-  if (!agent) {
-    throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
-  }
-  agent.isActive = IsActive.ACTIVE;
-  await agent.save();
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Agent approved",
-    data: agent,
-  });
-});
-
-// Suspend agent
-const suspendAgent = catchAsync(async (req: Request, res: Response) => {
-  const agent = await User.findOne({
-    _id: req.params.agentId,
-    role: Role.AGENT,
-  });
-  if (!agent) {
-    throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
-  }
-  agent.isActive = IsActive.BLOCKED;
-  await agent.save();
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Agent suspended",
-    data: agent,
+    message: "Admin activity retrieved successfully",
+    data: formattedActivities,
   });
 });
 
 export const AdminController = {
-  getAllUsers,
-  getAllAgents,
-  getAllWallets,
-  getAllTransactions,
-  blockWallet,
-  unblockWallet,
-  approveAgent,
-  suspendAgent,
+  getAdminSummary,
+  getAdminActivity,
 };

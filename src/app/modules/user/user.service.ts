@@ -10,14 +10,26 @@ import { Transaction } from "../transaction/transaction.model";
 import mongoose from "mongoose";
 
 const createUser = async (payload: Partial<IUser>) => {
+  console.log("Create user payload:", payload); // ✅ Add this debug log
+
   const { phone, password, email, role, ...rest } = payload;
 
+  console.log("Extracted values:", { phone, password, role }); // ✅ Add this debug log
+
   if (!phone || !password || !role) {
+    console.log("Missing fields:", {
+      hasPhone: !!phone,
+      hasPassword: !!password,
+      hasRole: !!role,
+    }); // ✅ Add this debug log
+
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Phone, password, and role are required"
     );
   }
+
+  // ... rest of your code
 
   // ✅ Only USER or AGENT allowed
   if (![Role.USER, Role.AGENT].includes(role)) {
