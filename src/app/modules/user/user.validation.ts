@@ -45,7 +45,7 @@ export const createUserZodSchema = z.object({
     message: "Phone must be a valid 11-digit BD number starting with 01",
   }),
 
-  role: RoleEnum.optional(),
+  role: RoleEnum,
 
   address: z
     .string()

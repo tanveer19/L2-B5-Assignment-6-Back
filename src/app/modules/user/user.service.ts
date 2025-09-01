@@ -10,22 +10,38 @@ import { Transaction } from "../transaction/transaction.model";
 import mongoose from "mongoose";
 
 const createUser = async (payload: Partial<IUser>) => {
-  console.log("Create user payload:", payload); // ✅ Add this debug log
+  // ✅ ADD DEBUG LOGGING HERE
+  console.log("🔍 [Service] Received payload:", payload);
+  console.log("🔍 [Service] Payload keys:", Object.keys(payload));
 
   const { phone, password, email, role, ...rest } = payload;
 
-  console.log("Extracted values:", { phone, password, role }); // ✅ Add this debug log
+  console.log("🔍 [Service] Extracted values:", {
+    phone,
+    password,
+    role,
+    email,
+  });
 
   if (!phone || !password || !role) {
-    console.log("Missing fields:", {
+    console.log("❌ [Service] Missing fields:", {
       hasPhone: !!phone,
       hasPassword: !!password,
       hasRole: !!role,
-    }); // ✅ Add this debug log
+      fullPayload: payload,
+    });
 
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Phone, password, and role are required"
+    );
+  }
+
+  // ✅ Validate role with better error message
+  if (![Role.USER, Role.AGENT].includes(role)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Role must be either "${Role.USER}" or "${Role.AGENT}". Received: "${role}"`
     );
   }
 
@@ -73,7 +89,7 @@ const createUser = async (payload: Partial<IUser>) => {
 
   // ✅ Optional: Log top-up transaction
   await Transaction.create({
-    type: "ADD",
+    type: "DEPOSIT",
     to: user._id,
     amount: 50,
   });

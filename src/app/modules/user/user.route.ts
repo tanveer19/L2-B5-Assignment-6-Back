@@ -1,5 +1,5 @@
 import { UserControllers } from "./user.controller";
-import { updateUserZodSchema } from "./user.validation";
+import { createUserZodSchema, updateUserZodSchema } from "./user.validation";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { Role } from "./user.interface";
 import { checkAuth } from "../../middlewares/checkAuth";
@@ -9,7 +9,7 @@ const router = Router();
 
 router.post(
   "/register",
-  validateRequest(updateUserZodSchema),
+  validateRequest(createUserZodSchema),
   UserControllers.createUser
 );
 

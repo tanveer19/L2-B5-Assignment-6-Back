@@ -11,6 +11,10 @@ import { envVars } from "../../config/env";
 import bcryptjs from "bcryptjs";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
+  // ✅ ADD DEBUG LOGGING HERE
+  console.log("🔍 [Controller] Raw request body:", req.body);
+  console.log("🔍 [Controller] Request headers:", req.headers);
+
   const user = await UserServices.createUser(req.body);
 
   sendResponse(res, {
