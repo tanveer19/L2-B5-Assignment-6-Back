@@ -35,4 +35,5 @@ export interface IUser {
   bookings?: Types.ObjectId[];
   guides?: Types.ObjectId[];
   wallet?: Types.ObjectId;
+  status?: "ACTIVE" | "BLOCKED";
 }

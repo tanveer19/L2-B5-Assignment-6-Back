@@ -158,10 +158,26 @@ const getUserById = async (id: string) => {
   const user = await User.findById(id).select("-password");
   return user;
 };
+const updateUserStatus = async (
+  userId: string,
+  status: "ACTIVE" | "BLOCKED"
+) => {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { isActive: status },
+    { new: true }
+  );
 
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user;
+};
 export const UserServices = {
   createUser,
   getAllUsers,
   updateUser,
   getUserById,
+  updateUserStatus,
 };

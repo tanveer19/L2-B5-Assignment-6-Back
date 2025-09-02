@@ -1,4 +1,3 @@
-// src/app/modules/admin/admin.controller.ts
 import { Request, Response } from "express";
 import httpStatus from "http-status-codes";
 import { User } from "../user/user.model";
@@ -6,7 +5,7 @@ import { Transaction } from "../transaction/transaction.model";
 import { catchAsync } from "../../utils/catchAsync";
 import AppError from "../../errorHelpers/AppError";
 import { sendResponse } from "../../utils/sendResponse";
-import { Role } from "../user/user.interface";
+import { Role, IsActive } from "../user/user.interface";
 import { IAdminSummary } from "./admin.interface";
 
 const getAdminSummary = catchAsync(async (req: Request, res: Response) => {
@@ -38,8 +37,8 @@ const getAdminSummary = catchAsync(async (req: Request, res: Response) => {
       { $match: { createdAt: { $gte: today } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
-    User.countDocuments({ isActive: true }),
-    User.countDocuments({ isActive: false }),
+    User.countDocuments({ isActive: IsActive.ACTIVE }),
+    User.countDocuments({ isActive: { $ne: IsActive.ACTIVE } }),
   ]);
 
   const summary: IAdminSummary = {
@@ -91,7 +90,98 @@ const getAdminActivity = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ✅ ADD: Get all users
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const users = await User.find()
+    .populate("wallet")
+    .select("-password")
+    .sort({ createdAt: -1 });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Users retrieved successfully",
+    data: users,
+  });
+});
+
+// ✅ ADD: Update user status
+const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { isActive } = req.body;
+
+  // Validate the status
+  if (!Object.values(IsActive).includes(isActive)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid status value");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { isActive },
+    { new: true, runValidators: true }
+  )
+    .populate("wallet")
+    .select("-password");
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: `User status updated to ${isActive}`,
+    data: user,
+  });
+});
+
+// ✅ ADD: Get user by ID
+const getUserById = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id).populate("wallet").select("-password");
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User retrieved successfully",
+    data: user,
+  });
+});
+
+// ✅ ADD: Delete user (soft delete)
+const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { isDeleted: true, isActive: IsActive.INACTIVE },
+    { new: true }
+  )
+    .populate("wallet")
+    .select("-password");
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User deleted successfully",
+    data: user,
+  });
+});
+
 export const AdminController = {
   getAdminSummary,
   getAdminActivity,
+  getAllUsers, // ✅ Add this
+  updateUserStatus, // ✅ Add this
+  getUserById, // ✅ Add this
+  deleteUser, // ✅ Add this
 };

@@ -118,12 +118,40 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     data: updatedUser,
   });
 });
+// Block user
+export const blockUser = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const result = await UserServices.updateUserStatus(userId, "BLOCKED");
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User blocked successfully",
+    data: result,
+  });
+});
+
+// Unblock user
+export const unblockUser = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const result = await UserServices.updateUserStatus(userId, "ACTIVE");
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User unblocked successfully",
+    data: result,
+  });
+});
+
 export const UserControllers = {
   createUser,
   getAllUsers,
   updateUser,
   updateProfile,
   getMe,
+  blockUser,
+  unblockUser,
 };
 
 // route matching > controller > service > model > DB

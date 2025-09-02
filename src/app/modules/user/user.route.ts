@@ -1,4 +1,4 @@
-import { UserControllers } from "./user.controller";
+import { blockUser, unblockUser, UserControllers } from "./user.controller";
 import { createUserZodSchema, updateUserZodSchema } from "./user.validation";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { Role } from "./user.interface";
@@ -37,5 +37,7 @@ router.patch(
   checkAuth(...Object.values(Role)),
   UserControllers.updateUser
 );
+router.patch("/:userId/block", blockUser);
+router.patch("/:userId/unblock", unblockUser);
 
 export const UserRoutes = router;
