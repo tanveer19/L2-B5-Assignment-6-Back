@@ -38,5 +38,16 @@ router.delete(
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   AdminController.deleteUser
 );
+// Agent management
+router.get(
+  "/agents",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getAllAgents // You'll need to create this controller
+);
+router.patch(
+  "/agents/:id/status",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.updateAgentStatus
+);
 
 export const AdminRoutes = router;

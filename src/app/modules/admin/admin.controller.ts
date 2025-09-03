@@ -177,11 +177,58 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ✅ ADD: Get all agents
+const getAllAgents = catchAsync(async (req: Request, res: Response) => {
+  const agents = await User.find({ role: Role.AGENT })
+    .populate("wallet")
+    .select("-password")
+    .sort({ createdAt: -1 });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Agents retrieved successfully",
+    data: agents,
+  });
+});
+
+// ✅ ADD: Update agent status
+const updateAgentStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { isActive } = req.body;
+
+  // Validate the status
+  if (!Object.values(IsActive).includes(isActive)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid status value");
+  }
+
+  const agent = await User.findOneAndUpdate(
+    { _id: id, role: Role.AGENT }, // Ensure we're only updating agents
+    { isActive },
+    { new: true, runValidators: true }
+  )
+    .populate("wallet")
+    .select("-password");
+
+  if (!agent) {
+    throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
+  }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: `Agent status updated to ${isActive}`,
+    data: agent,
+  });
+});
+
 export const AdminController = {
   getAdminSummary,
   getAdminActivity,
-  getAllUsers, // ✅ Add this
-  updateUserStatus, // ✅ Add this
-  getUserById, // ✅ Add this
-  deleteUser, // ✅ Add this
+  getAllUsers,
+  updateUserStatus,
+  getUserById,
+  deleteUser,
+  getAllAgents,
+  updateAgentStatus,
 };

@@ -6,7 +6,7 @@ import { Transaction } from "../transaction/transaction.model";
 import { catchAsync } from "../../utils/catchAsync";
 import AppError from "../../errorHelpers/AppError";
 import { sendResponse } from "../../utils/sendResponse";
-import { Role } from "../user/user.interface";
+import { IsActive, Role } from "../user/user.interface";
 import { IAgentSummary } from "./agent.interface";
 
 const cashIn = catchAsync(async (req: Request, res: Response) => {
@@ -242,10 +242,54 @@ const getAgentTransactions = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+
+// ✅ Block Agent
+const blockAgent = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const agent = await User.findById(id);
+
+  if (!agent || agent.role !== "AGENT") {
+    throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
+  }
+
+  agent.isActive = IsActive.INACTIVE;
+  await agent.save();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Agent blocked successfully",
+    data: agent,
+  });
+});
+
+// ✅ Unblock Agent
+const unblockAgent = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const agent = await User.findById(id);
+
+  if (!agent || agent.role !== "AGENT") {
+    throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
+  }
+
+  agent.isActive = IsActive.ACTIVE;
+  await agent.save();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Agent unblocked successfully",
+    data: agent,
+  });
+});
 export const AgentController = {
   cashIn,
   cashOut,
   getAgentSummary,
   getAgentActivity,
   getAgentTransactions,
+  blockAgent,
+  unblockAgent,
 };
