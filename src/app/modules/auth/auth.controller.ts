@@ -8,6 +8,7 @@ import { setAuthCookie } from "../../utils/setCookie";
 import { createUserTokens } from "../../utils/userTokens";
 import { JwtPayload } from "jsonwebtoken";
 import { IUser } from "../user/user.interface";
+import { envVars } from "../../config/env";
 
 const credentialsLogin = catchAsync(async (req: Request, res: Response) => {
   const { phone, password } = req.body;
@@ -74,16 +75,20 @@ const getNewAccessToken = catchAsync(async (req: Request, res: Response) => {
     data: tokenInfo,
   });
 });
+
 const logout = catchAsync(async (req: Request, res: Response) => {
+  const isProd = envVars.NODE_ENV === "production";
+
   res.clearCookie("accessToken", {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
   });
+
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
   });
 
   sendResponse(res, {

@@ -1,138 +1,95 @@
-# 💳 Wallet Management System API
+🚀 bKash Clone — Wallet & Transaction Management System
+📖 Project Overview
 
-A secure role-based digital wallet management system built using Node.js, Express, MongoDB, and TypeScript. Supports three roles: Admin, User, and Agent.
+This project is a bKash-like digital wallet application built with modern web technologies.
+It includes:
 
-# 🚀 Features
+User features → registration, login, wallet management, transactions.
 
-Authentication
+Agent features → agent verification, manage assigned users.
 
-JWT-based login system
+Admin features → user/agent management, wallet monitoring, transaction reports.
 
-Secure password hashing using bcrypt
+Secure authentication & authorization with role-based access.
 
-Role-based route protection
+The goal is to simulate a real-world fintech wallet system where users can deposit, withdraw, send money, and admins/agents manage operations.
 
-🧍 Users
-Automatically get a wallet with ৳50 on registration
+⚙️ Setup Instructions
+1️⃣ Clone the repository
+git clone https://github.com/tanveer19/L2-B5-Assignment-6-Front.git
+cd bkash-clone
 
-Top-up own wallet
+2️⃣ Install dependencies
 
-Withdraw from own wallet
-
-Send money to other users
-
-View own transaction history
-
-🧑‍💼 Agents
-Automatically get a wallet with ৳50 on registration
-
-Cash-in to any user’s wallet
-
-Cash-out from any user’s wallet
-
-View commission history (optional)
-
-👮 Admins
-View all users, agents, wallets, and transactions
-
-Block/unblock wallets
-
-Approve/suspend agents
-
-(Optional) Set system parameters like transaction fees
-
-🔐 Security
-Passwords are hashed
-
-Role and status checks before every action
-
-Wallets are blocked if user is blocked
-
-# 🛠️ Tech Stack
-
-Backend Framework: Express.js
-
-Language: TypeScript
-
-Database: MongoDB with Mongoose
-
-Auth: JWT
-
-Validation: Zod
-
-Password Hashing: bcrypt
-
-Installation
-
-# Clone the project
-
-git clone https://github.com/tanveer19/L2-B5-Assignment-5.git
-
-# Install dependencies
+Using pnpm (preferred):
 
 pnpm install
 
-# Create a .env file
+Or with npm:
 
-cp .env.example .env
+npm install
 
-# Run in development
+3️⃣ Setup environment variables
+
+Create a .env file in the root directory with:
+
+# Backend
+
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret_key
+PORT=5000
+
+4️⃣ Run the project
+
+Start backend & frontend together (if configured with workspaces):
 
 pnpm dev
 
-📋 API Endpoints
+Or separately:
 
-🔐 Auth
+cd backend && pnpm dev
+cd frontend && pnpm dev
 
-| Method | Endpoint         | Description         |
-| ------ | ---------------- | ------------------- |
-| POST   | `/user/register` | Register user/agent |
-| POST   | `/auth/login`    | Login and get token |
+5️⃣ Build for production
+pnpm build
 
-👤 Users
+🛠 Technology Stack
+Frontend
 
-| Method | Endpoint               | Description                |
-| ------ | ---------------------- | -------------------------- |
-| POST   | `/wallet/add-money`    | Add money to wallet        |
-| POST   | `/wallet/withdraw`     | Withdraw from wallet       |
-| POST   | `/wallet/send`         | Send money to another user |
-| GET    | `/wallet/transactions` | View transaction history   |
+⚛️ React (with Vite + TypeScript)
 
-🧑‍💼 Agents
+🎨 Tailwind CSS + shadcn/ui (UI components)
 
-| Method | Endpoint          | Description                 |
-| ------ | ----------------- | --------------------------- |
-| POST   | `/agent/cash-in`  | Add money to user's wallet  |
-| POST   | `/agent/cash-out` | Withdraw from user's wallet |
+🔄 Redux Toolkit (RTK Query) for state & API calls
 
-👮 Admins
+Backend
 
-| Method | Endpoint                     | Description          |
-| ------ | ---------------------------- | -------------------- |
-| GET    | `/admin/users`               | Get all users        |
-| GET    | `/admin/agents`              | Get all agents       |
-| GET    | `/admin/wallets`             | Get all wallets      |
-| GET    | `/admin/transactions`        | Get all transactions |
-| PATCH  | `/admin/wallets/:id/block`   | Block wallet         |
-| PATCH  | `/admin/wallets/:id/unblock` | Unblock wallet       |
-| PATCH  | `/admin/agents/:id/approve`  | Approve agent        |
-| PATCH  | `/admin/agents/:id/suspend`  | Suspend agent        |
+🟢 Node.js + Express.js
 
-🔐 Roles & Access
+🗄 MongoDB + Mongoose
 
-| Role  | Access                       |
-| ----- | ---------------------------- |
-| User  | Wallet operations for self   |
-| Agent | Wallet operations for others |
-| Admin | Full control and management  |
+🔐 JWT Authentication
 
-🧪 Testing (Postman)
-Use the following steps to test:
+⚡ TypeScript for type safety
 
-Register as user/agent via /auth/register
+Tools & Others
 
-Login via /auth/login to get token
+📦 pnpm (fast package manager)
 
-Set Authorization: Bearer <token> in Postman
+🔄 Prisma / Mongoose middleware for DB logic
 
-Access role-specific routes
+☁️ Deployment: Vercel (frontend), Render/Heroku (backend)
+
+🌍 Live URL https://l2-b5-assignment-6-back.vercel.app/
+
+📌 Relevant Notes
+
+Default user roles: USER, AGENT, ADMIN
+
+New users/agents get a wallet initialized with ৳50
+
+Admin can block/unblock users & agents
+
+Transactions include deposit, withdraw, send money
+
+Project follows modular folder structure for scalability

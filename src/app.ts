@@ -21,10 +21,22 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 app.set("trust proxy", 1);
+// app.use(
+//   cors({
+//     origin: envVars.FRONTEND_URL,
+//     credentials: true, // optional if you’re sending cookies or auth headers
+//   })
+// );
+const allowedOrigins = [
+  envVars.NODE_ENV === "production"
+    ? "https://l2-b5-assignment-6-front.vercel.app"
+    : "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: envVars.FRONTEND_URL,
-    credentials: true, // optional if you’re sending cookies or auth headers
+    origin: allowedOrigins,
+    credentials: true, // allow cookies to be sent
   })
 );
 
