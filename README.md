@@ -1,4 +1,4 @@
-🚀 bKash Clone — Wallet & Transaction Management System
+Wallet & Transaction Management System
 📖 Project Overview
 
 This project is a bKash-like digital wallet application built with modern web technologies.
@@ -16,8 +16,9 @@ The goal is to simulate a real-world fintech wallet system where users can depos
 
 ⚙️ Setup Instructions
 1️⃣ Clone the repository
-git clone https://github.com/tanveer19/L2-B5-Assignment-6-Front.git
-cd bkash-clone
+
+git clone https://github.com/tanveer19/L2-B5-Assignment-6-Back.git
+cd L2-B5-Assignment-6-Back
 
 2️⃣ Install dependencies
 
@@ -78,9 +79,7 @@ Tools & Others
 
 🔄 Prisma / Mongoose middleware for DB logic
 
-☁️ Deployment: Vercel (frontend), Render/Heroku (backend)
-
-🌍 Live URL https://l2-b5-assignment-6-back.vercel.app/
+🌍 Live URL https://l2-b5-assignment-6-back.vercel.app
 
 📌 Relevant Notes
 

@@ -10,6 +10,12 @@ import { AgentRoutes } from "./app/modules/agent/agent.route";
 import { AdminRoutes } from "./app/modules/admin/admin.route";
 
 const app = express();
+app.use(
+  cors({
+    origin: ["http://localhost:5173","https://l2-b5-assignment-6-front.vercel.app"],
+    credentials: true, // allow cookies to be sent
+  })
+);
 
 app.use(
   expressSession({
@@ -21,24 +27,8 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 app.set("trust proxy", 1);
-// app.use(
-//   cors({
-//     origin: envVars.FRONTEND_URL,
-//     credentials: true, // optional if you’re sending cookies or auth headers
-//   })
-// );
-const allowedOrigins = [
-  envVars.NODE_ENV === "production"
-    ? "https://l2-b5-assignment-6-front.vercel.app"
-    : "http://localhost:5173",
-];
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true, // allow cookies to be sent
-  })
-);
+
 
 app.use("/api/v1/user", UserRoutes);
 app.use("/api/v1/auth", AuthRoutes);
